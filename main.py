@@ -1,3 +1,4 @@
+#https://bottender.js.org/docs/en/1.3.1/channel-telegram-sending-messages
 import StringIO
 import json
 import logging
@@ -14,9 +15,12 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 import webapp2
 
-TOKEN = 'YOUR_BOT_TOKEN_HERE'
+TOKEN = YOUR_BOT_TOKEN_HERE
 
 BASE_URL = 'https://api.telegram.org/bot' + TOKEN + '/'
+
+#https://apps.timwhitlock.info/emoji/tables/unicode
+SMILEY = '\xF0\x9F\x98\x81'
 
 
 # ================================
@@ -57,9 +61,9 @@ class GetUpdatesHandler(webapp2.RequestHandler):
 class SetWebhookHandler(webapp2.RequestHandler):
     def get(self):
         urlfetch.set_default_fetch_deadline(60)
-        url = self.request.get('url')
+        url = self.request.uri
         if url:
-            self.response.write(json.dumps(json.load(urllib2.urlopen(BASE_URL + 'setWebhook', urllib.urlencode({'url': url})))))
+            self.response.write(json.dumps(json.load(urllib2.urlopen(BASE_URL + 'setWebhook', urllib.urlencode({'url': self.request.uri.replace('setWebhook','webhook')})))))
 
 
 class WebhookHandler(webapp2.RequestHandler):
@@ -72,21 +76,20 @@ class WebhookHandler(webapp2.RequestHandler):
 
         update_id = body['update_id']
         try:
-            message = body['message']
+            message = body['message'] #handle message
+            data = ''
         except:
-            message = body['edited_message']
-        message_id = message.get('message_id')
+            message = body['callback_query']['message'] #handle callback
+            data = body['callback_query']['data']
+            
+        message_id = message.get('message_id') #Message IDs are unique per channel and otherwise unique per account. Different channels will obviously share the same IDs, but they're unique within the channel.
         date = message.get('date')
         text = message.get('text')
         fr = message.get('from')
         chat = message['chat']
-        chat_id = chat['id']
+        chat_id = chat['id'] #chat_id will always be unique for each user connecting to your bot. If the same user sends messages to different bots, they will always 'identify' themselves with their unique id 
 
-        if not text:
-            logging.info('no text')
-            return
-
-        def reply(msg=None, img=None):
+        def reply(msg=None, raw=None, img=None):
             if msg:
                 resp = urllib2.urlopen(BASE_URL + 'sendMessage', urllib.urlencode({
                     'chat_id': str(chat_id),
@@ -101,14 +104,19 @@ class WebhookHandler(webapp2.RequestHandler):
                 ], [
                     ('photo', 'image.jpg', img),
                 ])
+            elif raw:
+                resp = urllib2.urlopen(BASE_URL + 'sendMessage', urllib.urlencode(raw)).read()            
             else:
                 logging.error('no msg or img specified')
                 resp = None
 
             logging.info('send response:')
             logging.info(resp)
+            
+        if data:
+            reply('I got your callback data {}'.format(data))
 
-        if text.startswith('/'):
+        elif text.startswith('/'):
             if text == '/start':
                 reply('Bot enabled')
                 setEnabled(chat_id, True)
@@ -123,8 +131,77 @@ class WebhookHandler(webapp2.RequestHandler):
                 output = StringIO.StringIO()
                 img.save(output, 'JPEG')
                 reply(img=output.getvalue())
+            elif text == '/url':
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open [URL](http://example.com)',
+                    'parse_mode' : "markdown",
+                    'reply_to_message_id': str(message_id)})            
+            elif text == '/url1':
+                #inline keyboard, open URL
+                keyboard = '{"inline_keyboard" : [[{"text" : "Open link", "url" : "http://example.com"}]]}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open URL',
+                    'parse_mode' : 'markdown',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })
+            elif text == '/key1':
+                #inline keyboard sample, parse_mode='markdown' https://core.telegram.org/bots/api#formatting-options
+                keyboard = '{"inline_keyboard" : [[{"text" : "keyboard", "callback_data" : "ini callback data"}]]}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open *URL*',
+                    'parse_mode' : 'markdown',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })
+            elif text == '/key2':
+                #inline keyboard sample, parse_mode='HTML' https://core.telegram.org/bots/api#formatting-options
+                keyboard = '{"inline_keyboard" : [[{"text" : "keyboard", "callback_data" : "ini callback data"}]]}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open <b>URL</b>',
+                    'parse_mode' : 'HTML',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })
+            elif text == '/key2a':
+                #inline keyboard sample with icon, parse_mode='HTML'
+                keyboard = '{"inline_keyboard" : [[{"text" : "\xF0\x9F\x98\x81 keyboard", "callback_data" : "ini callback data"}]]}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open <b>URL</b>',
+                    'parse_mode' : 'HTML',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })                       
+            elif text == '/key3':
+                #keyboard sample
+                keyboard = '{"keyboard" : [[{"text" : "keyboard", "callback_data" : "ini callback data"}]]}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open *URL*',
+                    'parse_mode' : 'markdown',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })
+            elif text == '/key4':
+                #keyboard sample
+                keyboard = '{"keyboard" : [[{"text" : "atas", "callback_data" : "ini callback data"}], [{"text" : "kiri", "callback_data" : "ini callback data"},{"text" : "kanan", "callback_data" : "ini callback data"}]]}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open *URL*',
+                    'parse_mode' : 'markdown',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })
+            elif text == '/key5':
+                #keyboard sample, one_time_keyboard
+                keyboard = '{"keyboard" : [[{"text" : "atas", "callback_data" : "ini callback data"}], [{"text" : "kiri", "callback_data" : "ini callback data"},{"text" : "kanan", "callback_data" : "ini callback data"}]],"resize_keyboard":true,"one_time_keyboard":true}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Click to Open *URL*',
+                    'parse_mode' : 'markdown',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })
+            elif text == '/key6':
+                #remove keyboard
+                keyboard = '{"remove_keyboard":true}'
+                reply(raw={'chat_id' : str(chat_id),
+                    'text' : 'Remove keyboard /key4',
+                    'parse_mode' : 'markdown',
+                    'reply_to_message_id': str(message_id),
+                    'reply_markup' : keyboard })                    
             else:
-                reply('What command?')
+                reply(text)
 
         # CUSTOMIZE FROM HERE
 
@@ -134,7 +211,7 @@ class WebhookHandler(webapp2.RequestHandler):
             reply('look at the corner of your screen!')
         else:
             if getEnabled(chat_id):
-                reply('I got your message! (but I do not know how to answer)')
+                reply('I got your message {}! (but I do not know how to answer)'.format(text))
             else:
                 logging.info('not enabled for chat_id {}'.format(chat_id))
 
@@ -142,6 +219,6 @@ class WebhookHandler(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
     ('/me', MeHandler),
     ('/updates', GetUpdatesHandler),
-    ('/set_webhook', SetWebhookHandler),
+    ('/setWebhook', SetWebhookHandler),
     ('/webhook', WebhookHandler),
 ], debug=True)
