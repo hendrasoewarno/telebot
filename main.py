@@ -22,7 +22,6 @@ BASE_URL = 'https://api.telegram.org/bot' + TOKEN + '/'
 #https://apps.timwhitlock.info/emoji/tables/unicode
 SMILEY = '\xF0\x9F\x98\x81'
 
-
 # ================================
 
 class EnableStatus(ndb.Model):
@@ -89,25 +88,25 @@ class WebhookHandler(webapp2.RequestHandler):
         chat = message['chat']
         chat_id = chat['id'] #chat_id will always be unique for each user connecting to your bot. If the same user sends messages to different bots, they will always 'identify' themselves with their unique id 
 
-        def reply(msg=None, raw=None, img=None):
+        def reply(msg=None, raw=None, img=None, endPoint='sendMessage'):
             if msg:
-                resp = urllib2.urlopen(BASE_URL + 'sendMessage', urllib.urlencode({
+                resp = urllib2.urlopen(BASE_URL + endPoint, urllib.urlencode({
                     'chat_id': str(chat_id),
                     'text': msg.encode('utf-8'),
                     'disable_web_page_preview': 'true',
                     'reply_to_message_id': str(message_id),
                 })).read()
             elif img:
-                resp = multipart.post_multipart(BASE_URL + 'sendPhoto', [
+                resp = multipart.post_multipart(BASE_URL + endPoint, [
                     ('chat_id', str(chat_id)),
                     ('reply_to_message_id', str(message_id)),
                 ], [
                     ('photo', 'image.jpg', img),
                 ])
             elif raw:
-                resp = urllib2.urlopen(BASE_URL + 'sendMessage', urllib.urlencode(raw)).read()            
+                resp = urllib2.urlopen(BASE_URL + endPoint, urllib.urlencode(raw)).read()            
             else:
-                logging.error('no msg or img specified')
+                logging.error('no msg, img or raw specified')
                 resp = None
 
             logging.info('send response:')
@@ -130,7 +129,20 @@ class WebhookHandler(webapp2.RequestHandler):
                 img.putdata(pixels)
                 output = StringIO.StringIO()
                 img.save(output, 'JPEG')
-                reply(img=output.getvalue())
+                reply(img=output.getvalue(), endPoint='sendPhoto')
+            elif text == '/image1':
+                reply(raw={'chat_id' : str(chat_id),
+                    'photo':'https://akcdn.detik.net.id/community/media/visual/2020/09/17/logo-detikcom.png?d=1',
+                    'caption': 'logo detik.com'}, endPoint='sendPhoto')
+            elif text == '/loc':
+                reply(raw={'chat_id' : str(chat_id),
+                    'latitude': 3.597031,
+                    'longitude': 98.678513 }, endPoint='sendLocation')
+            elif text == '/poll':
+                options = '["soto","pecel","indomie","nasi padang"]'
+                reply(raw={'chat_id' : str(chat_id),
+                    'question': 'what is your favourite food?',
+                    'options': options }, endPoint='sendPoll')                
             elif text == '/url':
                 reply(raw={'chat_id' : str(chat_id),
                     'text' : 'Click to Open [URL](http://example.com)',
@@ -222,3 +234,5 @@ app = webapp2.WSGIApplication([
     ('/setWebhook', SetWebhookHandler),
     ('/webhook', WebhookHandler),
 ], debug=True)
+
+
