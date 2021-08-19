@@ -182,7 +182,7 @@ class WebhookHandler(webapp2.RequestHandler):
                     'reply_markup' : keyboard })                       
             elif text == '/key3':
                 #keyboard sample
-                keyboard = '{"keyboard" : [[{"text" : "keyboard", "callback_data" : "ini callback data"}]]}'
+                keyboard = '{"keyboard" : [[{"text" : "keyboard"}]]}'
                 reply(raw={'chat_id' : str(chat_id),
                     'text' : 'Click to Open *URL*',
                     'parse_mode' : 'markdown',
@@ -190,7 +190,7 @@ class WebhookHandler(webapp2.RequestHandler):
                     'reply_markup' : keyboard })
             elif text == '/key4':
                 #keyboard sample
-                keyboard = '{"keyboard" : [[{"text" : "atas", "callback_data" : "ini callback data"}], [{"text" : "kiri", "callback_data" : "ini callback data"},{"text" : "kanan", "callback_data" : "ini callback data"}]]}'
+                keyboard = '{"keyboard" : [[{"text" : "atas"}], [{"text" : "kiri"},{"text" : "kanan"}]]}'
                 reply(raw={'chat_id' : str(chat_id),
                     'text' : 'Click to Open *URL*',
                     'parse_mode' : 'markdown',
@@ -198,7 +198,7 @@ class WebhookHandler(webapp2.RequestHandler):
                     'reply_markup' : keyboard })
             elif text == '/key5':
                 #keyboard sample, one_time_keyboard
-                keyboard = '{"keyboard" : [[{"text" : "atas", "callback_data" : "ini callback data"}], [{"text" : "kiri", "callback_data" : "ini callback data"},{"text" : "kanan", "callback_data" : "ini callback data"}]],"resize_keyboard":true,"one_time_keyboard":true}'
+                keyboard = '{"keyboard" : [[{"text" : "atas"}], [{"text" : "kiri"},{"text" : "kanan"}]],"resize_keyboard":true,"one_time_keyboard":true}'
                 reply(raw={'chat_id' : str(chat_id),
                     'text' : 'Click to Open *URL*',
                     'parse_mode' : 'markdown',
